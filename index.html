@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productivity Garden</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1 class="app-title">Productivity Garden</h1>
+            <div class="header-buttons">
+                <button id="plantdex-btn" class="header-btn" aria-label="Open Plantdex">
+                    <span class="btn-icon">📖</span>
+                    <span class="btn-text">Plantdex</span>
+                </button>
+                <button id="settings-btn" class="header-btn" aria-label="Open Settings">
+                    <span class="btn-icon">⚙️</span>
+                    <span class="btn-text">Settings</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Garden Canvas -->
+        <div class="garden-container">
+            <canvas id="garden-canvas" role="img" aria-label="Interactive garden where tasks grow as plants"></canvas>
+            <div class="garden-info">
+                <span id="plant-count">Plants: 0/5</span>
+            </div>
+        </div>
+
+        <!-- Seed Bank -->
+        <div class="seed-bank-container">
+            <h2 class="seed-bank-title">Seed Bank</h2>
+            <div class="seed-bank" id="seed-bank">
+                <div class="seed-slot" data-slot="0">
+                    <div class="seed-icon"></div>
+                </div>
+                <div class="seed-slot" data-slot="1">
+                    <div class="seed-icon"></div>
+                </div>
+                <div class="seed-slot" data-slot="2">
+                    <div class="seed-icon"></div>
+                </div>
+                <div class="seed-slot" data-slot="3">
+                    <div class="seed-icon"></div>
+                </div>
+                <div class="seed-slot" data-slot="4">
+                    <div class="seed-icon"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Pane (Plantdex & Settings) -->
+        <div class="side-pane" id="side-pane">
+            <div class="pane-header">
+                <h2 class="pane-title" id="pane-title">Plantdex</h2>
+                <button class="close-pane-btn" id="close-pane-btn" aria-label="Close pane">&times;</button>
+            </div>
+            <div class="pane-content" id="pane-content">
+                <!-- Content will be dynamically loaded -->
+            </div>
+        </div>
+
+        <!-- Plant Tooltip -->
+        <div class="plant-tooltip" id="plant-tooltip" role="tooltip"></div>
+
+        <!-- Plant Actions Popover -->
+        <div class="plant-popover" id="plant-popover" role="dialog">
+            <button class="popover-btn" id="complete-task-btn">Complete Task</button>
+            <button class="popover-btn" id="remove-plant-btn">Remove Plant</button>
+            <button class="popover-close" id="popover-close-btn" aria-label="Close">&times;</button>
+        </div>
+
+        <!-- Title Input Modal -->
+        <div class="modal" id="title-modal" role="dialog" aria-modal="true">
+            <div class="modal-content">
+                <h3>What task are you planting?</h3>
+                <input type="text" id="title-input" placeholder="Enter task title..." maxlength="50" aria-label="Task title">
+                <div class="modal-buttons">
+                    <button id="title-confirm-btn" class="btn-primary">Plant</button>
+                    <button id="title-cancel-btn" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="modal" id="confirm-modal" role="dialog" aria-modal="true">
+            <div class="modal-content">
+                <h3 id="confirm-message">Are you sure?</h3>
+                <div class="modal-buttons">
+                    <button id="confirm-yes-btn" class="btn-primary">Yes</button>
+                    <button id="confirm-no-btn" class="btn-secondary">No</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div class="toast-container" id="toast-container"></div>
+
+        <!-- Plant Detail Modal -->
+        <div class="modal" id="plant-detail-modal" role="dialog" aria-modal="true">
+            <div class="modal-content plant-detail-content">
+                <button class="modal-close" id="detail-close-btn" aria-label="Close">&times;</button>
+                <div class="plant-detail-icon" id="detail-icon"></div>
+                <h3 id="detail-name"></h3>
+                <p class="plant-tier" id="detail-tier"></p>
+                <p class="plant-description" id="detail-description"></p>
+                <div class="plant-stats">
+                    <span>Times Grown: <strong id="detail-count">0</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
