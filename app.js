@@ -400,14 +400,6 @@ class GardenRenderer {
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.width, this.height);
         
-        // Draw ground line
-        const groundY = this.height * 0.8;
-        this.ctx.strokeStyle = '#8b5a3c';
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, groundY);
-        this.ctx.lineTo(this.width, groundY);
-        this.ctx.stroke();
         
         // Draw plants
         this.gameState.plants.forEach(plant => {
