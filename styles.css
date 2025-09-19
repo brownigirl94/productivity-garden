@@ -214,8 +214,8 @@ body {
 .side-pane {
     position: fixed;
     top: 0;
-    right: -400px;
-    width: 400px;
+    right: -600px;
+    width: 600px;
     height: 100vh;
     background: white;
     box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
