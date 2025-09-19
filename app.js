@@ -60,6 +60,16 @@ const PLANT_DATABASE = {
     ]
 };
 
+// Growth stage emojis
+const GROWTH_STAGE_EMOJIS = [
+    '🌰', // Stage 0: Seed (0-20 minutes)
+    '🌱', // Stage 1: Sprout (20min-1hr)
+    '🌿', // Stage 2: Seedling (1-2hrs)
+    '🌾', // Stage 3: Young Plant (2-4hrs)
+    '🌲', // Stage 4: Mature Plant (4-24hrs)
+    '🌺'  // Stage 5: Full Bloom (24+hrs)
+];
+
 // Game State
 class GameState {
     constructor() {
@@ -411,7 +421,7 @@ class GardenRenderer {
         const stage = this.gameState.getGrowthStage(plant);
         const x = plant.x;
         const y = plant.y;
-        
+
         // Highlight if hovered
         if (plant === this.gameState.hoveredPlant) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
@@ -420,39 +430,17 @@ class GardenRenderer {
             this.ctx.arc(x, y, 35, 0, Math.PI * 2);
             this.ctx.stroke();
         }
-        
-        // Draw plant based on stage
-        const stageConfig = [
-            { size: 10, color: '#8b5a3c' }, // Seed
-            { size: 15, color: '#7cb342' }, // Sprout
-            { size: 20, color: '#689f38' }, // Seedling  
-            { size: 25, color: '#558b2f' }, // Young
-            { size: 30, color: '#33691e' }, // Mature
-            { size: 35, color: '#1b5e20' }  // Full
-        ];
-        
-        const config = stageConfig[Math.min(stage, stageConfig.length - 1)];
-        
-        // Draw plant circle (placeholder)
-        this.ctx.fillStyle = config.color;
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, config.size, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Add tier indicator
-        const tierColor = TIER_COLORS[plant.tier];
-        this.ctx.strokeStyle = tierColor;
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, config.size + 5, 0, Math.PI * 2);
-        this.ctx.stroke();
-        
-        // Draw stage label
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 12px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(stage + 1, x, y);
+
+        // Draw plant emoji for stages 0-5
+        if (stage <= 5) {
+            const emoji = GROWTH_STAGE_EMOJIS[stage];
+
+            // Draw emoji with fixed size
+            this.ctx.font = '40px serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(emoji, x, y);
+        }
     }
 
     start() {
