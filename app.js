@@ -211,6 +211,10 @@ class GameState {
         const typeIndex = Math.floor(Math.random() * 5) + 1;
         const plantKey = `${plant.tier}:${typeIndex}`;
 
+        // Store the specific plant type for rendering
+        plant.harvestedType = typeIndex;
+        plant.harvestedPlant = PLANT_DATABASE[plant.tier][typeIndex - 1];
+
         // Update dex
         this.dex[plantKey] = (this.dex[plantKey] || 0) + 1;
 
@@ -285,9 +289,27 @@ class GardenRenderer {
         this.gameState = gameState;
         this.animationFrame = null;
         this.dpr = window.devicePixelRatio || 1;
-        
+        this.imageCache = new Map();
+
         this.setupCanvas();
         this.bindEvents();
+        this.preloadImages();
+    }
+
+    preloadImages() {
+        // Preload all plant images
+        Object.entries(PLANT_DATABASE).forEach(([tier, plants]) => {
+            plants.forEach(plant => {
+                const img = new Image();
+                img.src = `assets/${plant.icon}`;
+                img.onload = () => {
+                    this.imageCache.set(plant.icon, img);
+                };
+                img.onerror = () => {
+                    console.warn(`Failed to load image: ${plant.icon}`);
+                };
+            });
+        });
     }
 
     setupCanvas() {
@@ -450,10 +472,10 @@ class GardenRenderer {
         const x = plant.x;
         const y = plant.y;
 
-        // Apply opacity for harvested plants
+        // Apply opacity for harvested plants (higher opacity for images)
         if (plant.harvested) {
             this.ctx.save();
-            this.ctx.globalAlpha = 0.4;
+            this.ctx.globalAlpha = 0.7; // Increased from 0.4 for better visibility
         }
 
         // Highlight if hovered (but not if harvested)
@@ -478,11 +500,25 @@ class GardenRenderer {
             this.ctx.stroke();
         }
 
-        // Draw plant emoji for stages 0-5
-        if (stage <= 5) {
+        // Draw plant - either image for harvested or emoji for growing
+        if (plant.harvested && plant.harvestedPlant) {
+            // Draw the harvested plant image
+            const img = this.imageCache.get(plant.harvestedPlant.icon);
+            if (img) {
+                // Draw image centered at plant position
+                const imgSize = 60;
+                this.ctx.drawImage(img, x - imgSize/2, y - imgSize/2, imgSize, imgSize);
+            } else {
+                // Fallback to emoji if image not loaded
+                this.ctx.font = '40px serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('🌺', x, y);
+            }
+        } else if (stage <= 5) {
+            // Draw growth stage emoji for non-harvested plants
             const emoji = GROWTH_STAGE_EMOJIS[stage];
 
-            // Draw emoji with fixed size
             this.ctx.font = '40px serif';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
