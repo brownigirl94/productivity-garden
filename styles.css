@@ -171,6 +171,34 @@ body {
     background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
 }
 
+.seed-slot.new-seed-highlight {
+    animation: seedHighlight 2s ease-in-out;
+    box-shadow: 0 0 20px #4caf50;
+}
+
+@keyframes seedHighlight {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #4caf50;
+    }
+    25% {
+        transform: scale(1.2);
+        box-shadow: 0 0 30px #4caf50, 0 0 60px #4caf50;
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 20px #4caf50, 0 0 40px #4caf50;
+    }
+    75% {
+        transform: scale(1.15);
+        box-shadow: 0 0 15px #4caf50;
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 5px #4caf50;
+    }
+}
+
 .seed-slot.filled .seed-icon::after {
     content: '🌰';
     font-size: 2rem;

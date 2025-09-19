@@ -12,7 +12,7 @@ const STORAGE_KEYS = {
 const GAME_CONFIG = {
     MAX_SEEDS: 5,
     MAX_PLANTS: 5,
-    MIN_COMPLETE_TIME: 20 * 60 * 1000, // 20 minutes in ms
+    MIN_COMPLETE_TIME: 1 * 60 * 1000, // 20 minutes in ms
     GROWTH_STAGES: [
         { time: 0, label: 'Seed' },
         { time: 20 * 60 * 1000, label: 'Sprout' },
@@ -136,17 +136,32 @@ class GameState {
         return seed;
     }
 
-    addSeed(tier) {
+    addSeed(tier, highlight = false) {
         if (this.seeds.length >= GAME_CONFIG.MAX_SEEDS) {
             showToast('Seed bank is full! Reward discarded.', 'warning');
             return false;
         }
-        
-        this.seeds.push({
+
+        const newSeed = {
             id: `seed_${Date.now()}_${Math.random()}`,
-            tier: tier
-        });
+            tier: tier,
+            isNew: highlight
+        };
+        this.seeds.push(newSeed);
         this.save();
+
+        // Remove the highlight after a delay
+        if (highlight) {
+            setTimeout(() => {
+                const seed = this.seeds.find(s => s.id === newSeed.id);
+                if (seed) {
+                    seed.isNew = false;
+                    this.save();
+                    updateSeedBank();
+                }
+            }, 3000);
+        }
+
         return true;
     }
 
@@ -173,29 +188,36 @@ class GameState {
     completePlant(plantId) {
         const plantIndex = this.plants.findIndex(p => p.id === plantId);
         if (plantIndex === -1) return null;
-        
+
         const plant = this.plants[plantIndex];
         const elapsed = Date.now() - plant.plantedAt;
-        
+
         if (elapsed < GAME_CONFIG.MIN_COMPLETE_TIME) {
             showToast('Plant needs more time to grow!', 'warning');
             return null;
         }
 
-        // Remove plant from garden
-        this.plants.splice(plantIndex, 1);
+        // Check if already harvested
+        if (plant.harvested) {
+            showToast('This plant has already been harvested!', 'info');
+            return null;
+        }
+
+        // Mark plant as harvested instead of removing it
+        plant.harvested = true;
+        plant.harvestedAt = Date.now();
 
         // Roll plant type within tier
         const typeIndex = Math.floor(Math.random() * 5) + 1;
         const plantKey = `${plant.tier}:${typeIndex}`;
-        
+
         // Update dex
         this.dex[plantKey] = (this.dex[plantKey] || 0) + 1;
 
         // Roll seed reward
         const rewardTier = this.rollSeedReward(plant.tier);
         if (rewardTier) {
-            this.addSeed(rewardTier);
+            this.addSeed(rewardTier, true); // Pass true to highlight new seed
         }
 
         this.save();
@@ -297,9 +319,12 @@ class GardenRenderer {
 
         // Check if clicking on a plant
         const plant = this.getPlantAt(x, y);
-        
+
         if (plant) {
-            this.showPlantPopover(plant, x, y);
+            // Don't show popover for harvested plants
+            if (!plant.harvested) {
+                this.showPlantPopover(plant, x, y);
+            }
         } else {
             // Plant a new seed
             if (this.gameState.plants.length >= GAME_CONFIG.MAX_PLANTS) {
@@ -324,20 +349,23 @@ class GardenRenderer {
         const y = e.clientY - rect.top;
 
         const plant = this.getPlantAt(x, y);
-        
-        if (plant !== this.gameState.hoveredPlant) {
-            this.gameState.hoveredPlant = plant;
-            
-            if (plant) {
-                showPlantTooltip(plant, e.clientX, e.clientY);
+
+        // Ignore harvested plants for hover
+        const effectivePlant = plant && !plant.harvested ? plant : null;
+
+        if (effectivePlant !== this.gameState.hoveredPlant) {
+            this.gameState.hoveredPlant = effectivePlant;
+
+            if (effectivePlant) {
+                showPlantTooltip(effectivePlant, e.clientX, e.clientY);
                 this.canvas.style.cursor = 'pointer';
             } else {
                 hidePlantTooltip();
                 this.canvas.style.cursor = 'crosshair';
             }
-        } else if (plant) {
-            // Update tooltip position
-            showPlantTooltip(plant, e.clientX, e.clientY);
+        } else if (effectivePlant) {
+            // Update tooltip position for non-harvested plants
+            showPlantTooltip(effectivePlant, e.clientX, e.clientY);
         }
     }
 
@@ -422,12 +450,31 @@ class GardenRenderer {
         const x = plant.x;
         const y = plant.y;
 
-        // Highlight if hovered
-        if (plant === this.gameState.hoveredPlant) {
+        // Apply opacity for harvested plants
+        if (plant.harvested) {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.4;
+        }
+
+        // Highlight if hovered (but not if harvested)
+        if (plant === this.gameState.hoveredPlant && !plant.harvested) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 3;
             this.ctx.beginPath();
             this.ctx.arc(x, y, 35, 0, Math.PI * 2);
+            this.ctx.stroke();
+        }
+
+        // Draw checkmark for harvested plants
+        if (plant.harvested) {
+            // Draw a subtle checkmark overlay
+            this.ctx.strokeStyle = '#4caf50';
+            this.ctx.lineWidth = 4;
+            this.ctx.lineCap = 'round';
+            this.ctx.beginPath();
+            this.ctx.moveTo(x - 10, y);
+            this.ctx.lineTo(x - 2, y + 8);
+            this.ctx.lineTo(x + 12, y - 8);
             this.ctx.stroke();
         }
 
@@ -440,6 +487,11 @@ class GardenRenderer {
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText(emoji, x, y);
+        }
+
+        // Restore opacity if it was changed
+        if (plant.harvested) {
+            this.ctx.restore();
         }
     }
 
@@ -461,18 +513,28 @@ class GardenRenderer {
 // UI Controllers
 function updateSeedBank() {
     const slots = document.querySelectorAll('.seed-slot');
-    
+
     slots.forEach((slot, index) => {
         if (index < gameState.seeds.length) {
             slot.classList.add('filled');
             slot.classList.remove('empty');
-            
+
             // Set tier-specific styling
             const seed = gameState.seeds[index];
             slot.dataset.tier = seed.tier;
+
+            // Add highlight animation for new seeds
+            if (seed.isNew) {
+                slot.classList.add('new-seed-highlight');
+                // Remove the animation class after it completes
+                setTimeout(() => {
+                    slot.classList.remove('new-seed-highlight');
+                }, 3000);
+            }
         } else {
             slot.classList.remove('filled');
             slot.classList.add('empty');
+            slot.classList.remove('new-seed-highlight');
             delete slot.dataset.tier;
         }
     });
