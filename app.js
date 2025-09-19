@@ -38,25 +38,25 @@ const TIER_COLORS = {
 // Plant Database
 const PLANT_DATABASE = {
     basic: [
-        { id: 1, name: 'Moonbell Fern', icon: '🌿', description: 'A gentle fern that chimes softly in moonlight, said to bring peaceful dreams to those who tend it.' },
-        { id: 2, name: 'Dewdrop Moss', icon: '🍃', description: 'This humble moss collects morning dew that sparkles like tiny diamonds, beloved by hedge wizards for simple enchantments.' },
-        { id: 3, name: 'Whisperwort', icon: '🌱', description: 'Its leaves rustle with the faintest breeze, carrying messages between gardeners who know how to listen.' },
-        { id: 4, name: 'Glimmergrass', icon: '🌾', description: 'Common in magical meadows, each blade reflects light differently, creating a shimmering carpet effect.' },
-        { id: 5, name: 'Starlight Sprout', icon: '☘️', description: 'A hardy little plant that glows faintly at night, often used to mark garden paths in wizarding communities.' }
+        { id: 1, name: 'Moonbell Fern', icon: 'moonbell_fern.png', description: 'A gentle fern that chimes softly in moonlight, said to bring peaceful dreams to those who tend it.' },
+        { id: 2, name: 'Dewdrop Moss', icon: 'dewdrop_moss.png', description: 'This humble moss collects morning dew that sparkles like tiny diamonds, beloved by hedge wizards for simple enchantments.' },
+        { id: 3, name: 'Whisperwort', icon: 'whisper_wort.png', description: 'Its leaves rustle with the faintest breeze, carrying messages between gardeners who know how to listen.' },
+        { id: 4, name: 'Glimmergrass', icon: 'glimmergrass.png', description: 'Common in magical meadows, each blade reflects light differently, creating a shimmering carpet effect.' },
+        { id: 5, name: 'Starlight Sprout', icon: 'starlight_sprout.png', description: 'A hardy little plant that glows faintly at night, often used to mark garden paths in wizarding communities.' }
     ],
     rare: [
-        { id: 1, name: 'Crystalbark Sapling', icon: '🌲', description: 'Its bark slowly crystallizes over time, producing fragments sought after by alchemists for focus potions.' },
-        { id: 2, name: 'Dreamweaver Vine', icon: '🌿', description: 'These purple vines grow in spirals and are said to enhance lucid dreaming when dried and kept under pillows.' },
-        { id: 3, name: 'Phoenix Bloom', icon: '🌺', description: 'A flower that wilts and regrows daily, its petals carry warmth even in winter and are prized by herbalists.' },
-        { id: 4, name: 'Shadowleaf Orchid', icon: '🌸', description: 'Thrives in darkness rather than light, its midnight-blue flowers are essential in nocturnal spell work.' },
-        { id: 5, name: 'Timekeeper Rose', icon: '🌹', description: 'Each petal marks an hour of the day, opening and closing in perfect rhythm with the sun\'s journey.' }
+        { id: 1, name: 'Crystalbark Sapling', icon: 'crystalbark_sapling.png', description: 'Its bark slowly crystallizes over time, producing fragments sought after by alchemists for focus potions.' },
+        { id: 2, name: 'Dreamweaver Vine', icon: 'dreamweaver_vine.png', description: 'These purple vines grow in spirals and are said to enhance lucid dreaming when dried and kept under pillows.' },
+        { id: 3, name: 'Phoenix Bloom', icon: 'phoenix_bloom.png', description: 'A flower that wilts and regrows daily, its petals carry warmth even in winter and are prized by herbalists.' },
+        { id: 4, name: 'Shadowleaf Orchid', icon: 'shadowleaf_orchid.png', description: 'Thrives in darkness rather than light, its midnight-blue flowers are essential in nocturnal spell work.' },
+        { id: 5, name: 'Timekeeper Rose', icon: 'timekeeper_rose.png', description: 'Each petal marks an hour of the day, opening and closing in perfect rhythm with the sun\'s journey.' }
     ],
     extinct: [
-        { id: 1, name: 'Dragon\'s Breath Lily', icon: '🔥', description: 'Once thought lost to the ages, this fiery bloom exhales warm mist and was treasured by ancient fire mages.' },
-        { id: 2, name: 'Void Lotus', icon: '🌑', description: 'A legendary flower that absorbs all light around it, creating patches of absolute darkness in daylight gardens.' },
-        { id: 3, name: 'Eternal Frost Pine', icon: '❄️', description: 'From the frozen north, this tree never thaws and its needles can preserve anything they touch indefinitely.' },
-        { id: 4, name: 'Starfall Mushroom', icon: '🍄', description: 'Said to grow only where meteors have fallen, these luminous fungi pulse with celestial energy.' },
-        { id: 5, name: 'Worldtree Seedling', icon: '🌳', description: 'The rarest of all plants, descended from the mythical tree that connects all realms of existence.' }
+        { id: 1, name: 'Dragon\'s Breath Lily', icon: 'dradonbreath_lily.png', description: 'Once thought lost to the ages, this fiery bloom exhales warm mist and was treasured by ancient fire mages.' },
+        { id: 2, name: 'Void Lotus', icon: 'void_lotus.png', description: 'A legendary flower that absorbs all light around it, creating patches of absolute darkness in daylight gardens.' },
+        { id: 3, name: 'Eternal Frost Pine', icon: 'eternalfrost_pine.png', description: 'From the frozen north, this tree never thaws and its needles can preserve anything they touch indefinitely.' },
+        { id: 4, name: 'Starfall Mushroom', icon: 'starfall_mushroom.png', description: 'Said to grow only where meteors have fallen, these luminous fungi pulse with celestial energy.' },
+        { id: 5, name: 'Worldtree Seedling', icon: 'worldtree_seedling.png', description: 'The rarest of all plants, descended from the mythical tree that connects all realms of existence.' }
     ]
 };
 
@@ -583,7 +583,17 @@ function showPlantdex() {
             
             const icon = document.createElement('div');
             icon.className = 'plantdex-icon';
-            icon.textContent = count > 0 ? plant.icon : '?';
+            if (count > 0) {
+                const img = document.createElement('img');
+                img.src = `assets/${plant.icon}`;
+                img.alt = plant.name;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                icon.appendChild(img);
+            } else {
+                icon.textContent = '?';
+            }
             item.appendChild(icon);
             
             const name = document.createElement('div');
@@ -676,7 +686,14 @@ function showPlantDetail(tier, plant, count) {
     const description = document.getElementById('detail-description');
     const countEl = document.getElementById('detail-count');
     
-    icon.textContent = plant.icon;
+    icon.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = `assets/${plant.icon}`;
+    img.alt = plant.name;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    icon.appendChild(img);
     icon.style.background = `linear-gradient(135deg, ${TIER_COLORS[tier]}33 0%, ${TIER_COLORS[tier]}66 100%)`;
     name.textContent = plant.name;
     tierEl.textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
