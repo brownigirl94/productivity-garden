@@ -324,6 +324,22 @@ class GameState {
         return false;
     }
 
+    clearHarvested() {
+        const initialCount = this.plants.length;
+        // Filter out only the harvested plants (keep the non-harvested ones)
+        this.plants = this.plants.filter(plant => !plant.harvested);
+        const removedCount = initialCount - this.plants.length;
+
+        if (removedCount > 0) {
+            this.save();
+            showToast(`Cleared ${removedCount} harvested plant${removedCount > 1 ? 's' : ''}`, 'success');
+            return true;
+        } else {
+            showToast('No harvested plants to clear', 'info');
+            return false;
+        }
+    }
+
     getGrowthStage(plant) {
         const elapsed = Date.now() - plant.plantedAt;
         let stage = 0;
@@ -525,10 +541,23 @@ class GardenRenderer {
         this.dpr = window.devicePixelRatio || 1;
         this.imageCache = new Map();
         this.harvestAnimation = new HarvestAnimation(this.imageCache);
+        this.backgroundImage = null;
 
         this.setupCanvas();
         this.bindEvents();
         this.preloadImages();
+        this.loadBackgroundImage();
+    }
+
+    loadBackgroundImage() {
+        const img = new Image();
+        img.src = 'assets/garden.png';
+        img.onload = () => {
+            this.backgroundImage = img;
+        };
+        img.onerror = () => {
+            console.warn('Failed to load background image: assets/garden.png');
+        };
     }
 
     preloadImages() {
@@ -683,12 +712,18 @@ class GardenRenderer {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.width, this.height);
 
-        // Draw background gradient
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
-        gradient.addColorStop(0, '#87ceeb');
-        gradient.addColorStop(1, '#98fb98');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, this.width, this.height);
+        // Draw background image or fallback gradient
+        if (this.backgroundImage) {
+            // Draw the background image scaled to fit canvas
+            this.ctx.drawImage(this.backgroundImage, 0, 0, this.width, this.height);
+        } else {
+            // Fallback to gradient if image hasn't loaded
+            const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+            gradient.addColorStop(0, '#87ceeb');
+            gradient.addColorStop(1, '#98fb98');
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
 
         // Update harvest animations
         this.harvestAnimation.update();
@@ -1069,7 +1104,14 @@ function bindUIEvents() {
     // Header buttons
     document.getElementById('plantdex-btn').addEventListener('click', showPlantdex);
     document.getElementById('settings-btn').addEventListener('click', showSettings);
-    
+    document.getElementById('clear-harvested-btn').addEventListener('click', () => {
+        const cleared = gameState.clearHarvested();
+        if (cleared) {
+            // Force a re-render of the garden to show the changes
+            renderer.render();
+        }
+    });
+
     // Side pane close
     document.getElementById('close-pane-btn').addEventListener('click', () => {
         document.getElementById('side-pane').classList.remove('open');
