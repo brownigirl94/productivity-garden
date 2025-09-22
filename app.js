@@ -231,9 +231,19 @@ class GameState {
         this.save();
 
         const plantInfo = PLANT_DATABASE[plant.tier][typeIndex - 1];
-        showToast(`Harvested ${plantInfo.name}!`, 'success');
-        
-        return { plantKey, plantInfo };
+        // Delay toast to show after animation
+        setTimeout(() => {
+            showToast(`Harvested ${plantInfo.name}!`, 'success');
+        }, 2000);
+
+        return {
+            plantKey,
+            plantInfo,
+            plantId: plant.id,
+            position: { x: plant.x, y: plant.y },
+            tier: plant.tier,
+            finalPlant: plantInfo
+        };
     }
 
     rollSeedReward(completedTier) {
@@ -285,6 +295,174 @@ class GameState {
     }
 }
 
+// Harvest Animation System
+class HarvestAnimation {
+    constructor(imageCache) {
+        this.imageCache = imageCache;
+        this.animations = new Map(); // Map of plantId to animation state
+        this.FRAME_DURATION = 150; // ms per frame
+        this.TOTAL_DURATION = 2000; // Total animation time
+        this.CANDIDATE_COUNT = 5; // Number of plants to cycle through
+    }
+
+    startAnimation(plantId, position, tier, finalPlant) {
+        // Get candidate plants from the same tier
+        const candidates = PLANT_DATABASE[tier];
+
+        // Create shuffled array of candidates for variety
+        const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
+
+        // Build frame sequence (repeat candidates to fill animation time)
+        const frameCount = Math.floor(this.TOTAL_DURATION / this.FRAME_DURATION);
+        const frames = [];
+
+        // Fill most frames with random candidates
+        for (let i = 0; i < frameCount - 3; i++) {
+            frames.push(shuffledCandidates[i % shuffledCandidates.length]);
+        }
+
+        // Slow down at the end by repeating final plant
+        frames.push(finalPlant, finalPlant, finalPlant);
+
+        // Store animation state
+        this.animations.set(plantId, {
+            position: { x: position.x, y: position.y },
+            frames: frames,
+            currentFrame: 0,
+            startTime: Date.now(),
+            lastFrameTime: Date.now(),
+            finalPlant: finalPlant,
+            tier: tier,
+            complete: false,
+            // Easing function for slot machine effect
+            getFrameDuration: (frameIndex) => {
+                const progress = frameIndex / frameCount;
+                // Speed up in middle, slow down at end
+                if (progress < 0.7) {
+                    return this.FRAME_DURATION * (0.5 + progress * 0.5);
+                } else {
+                    // Exponentially slow down for last 30%
+                    const slowdownFactor = 1 + Math.pow((progress - 0.7) / 0.3, 2) * 3;
+                    return this.FRAME_DURATION * slowdownFactor;
+                }
+            }
+        });
+    }
+
+    update() {
+        const now = Date.now();
+
+        for (const [plantId, anim] of this.animations.entries()) {
+            if (anim.complete) continue;
+
+            // Check if it's time for next frame
+            const frameDuration = anim.getFrameDuration(anim.currentFrame);
+            if (now - anim.lastFrameTime >= frameDuration) {
+                anim.currentFrame++;
+                anim.lastFrameTime = now;
+
+                // Check if animation is complete
+                if (anim.currentFrame >= anim.frames.length) {
+                    anim.complete = true;
+                }
+            }
+        }
+
+        // Clean up completed animations after a delay
+        for (const [plantId, anim] of this.animations.entries()) {
+            if (anim.complete && now - anim.startTime > this.TOTAL_DURATION + 500) {
+                this.animations.delete(plantId);
+            }
+        }
+    }
+
+    render(ctx) {
+        for (const [plantId, anim] of this.animations.entries()) {
+            if (anim.currentFrame >= anim.frames.length) continue;
+
+            const currentPlant = anim.frames[anim.currentFrame];
+            const { x, y } = anim.position;
+
+            // Draw animation effects
+            ctx.save();
+
+            // Add pulsing effect during animation
+            if (!anim.complete) {
+                const pulse = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+                ctx.translate(x, y);
+                ctx.scale(pulse, pulse);
+                ctx.translate(-x, -y);
+            }
+
+            // Draw spinning glow effect
+            if (!anim.complete) {
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 40);
+                gradient.addColorStop(0, `${TIER_COLORS[anim.tier]}33`);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, 40, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw the current plant image
+            const img = this.imageCache.get(currentPlant.icon);
+            if (img) {
+                const imgSize = anim.complete ? 60 : 70; // Slightly larger during animation
+                ctx.drawImage(img, x - imgSize/2, y - imgSize/2, imgSize, imgSize);
+            } else {
+                // Fallback to emoji if image not loaded
+                ctx.font = anim.complete ? '40px serif' : '45px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🌺', x, y);
+            }
+
+            // Add sparkle effects
+            if (!anim.complete) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                const sparkleCount = 3;
+                for (let i = 0; i < sparkleCount; i++) {
+                    const angle = (Date.now() * 0.002 + i * Math.PI * 2 / sparkleCount) % (Math.PI * 2);
+                    const sparkleX = x + Math.cos(angle) * 35;
+                    const sparkleY = y + Math.sin(angle) * 35;
+                    const sparkleSize = 2 + Math.sin(Date.now() * 0.01 + i) * 1;
+
+                    ctx.beginPath();
+                    ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Show completion checkmark
+            if (anim.complete) {
+                ctx.strokeStyle = '#4caf50';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(x - 10, y);
+                ctx.lineTo(x - 2, y + 8);
+                ctx.lineTo(x + 12, y - 8);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+    }
+
+    isAnimating(plantId) {
+        return this.animations.has(plantId) && !this.animations.get(plantId).complete;
+    }
+
+    cancelAnimation(plantId) {
+        this.animations.delete(plantId);
+    }
+
+    cancelAll() {
+        this.animations.clear();
+    }
+}
+
 // Canvas Renderer
 class GardenRenderer {
     constructor(canvas, gameState) {
@@ -294,6 +472,7 @@ class GardenRenderer {
         this.animationFrame = null;
         this.dpr = window.devicePixelRatio || 1;
         this.imageCache = new Map();
+        this.harvestAnimation = new HarvestAnimation(this.imageCache);
 
         this.setupCanvas();
         this.bindEvents();
@@ -451,19 +630,26 @@ class GardenRenderer {
     render() {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.width, this.height);
-        
+
         // Draw background gradient
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
         gradient.addColorStop(0, '#87ceeb');
         gradient.addColorStop(1, '#98fb98');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.width, this.height);
-        
-        
-        // Draw plants
+
+        // Update harvest animations
+        this.harvestAnimation.update();
+
+        // Draw plants (skip if being animated)
         this.gameState.plants.forEach(plant => {
-            this.drawPlant(plant);
+            if (!this.harvestAnimation.isAnimating(plant.id)) {
+                this.drawPlant(plant);
+            }
         });
+
+        // Draw harvest animations on top
+        this.harvestAnimation.render(this.ctx);
     }
 
     drawPlant(plant) {
@@ -890,6 +1076,14 @@ function bindUIEvents() {
         if (gameState.selectedPlant) {
             const result = gameState.completePlant(gameState.selectedPlant.id);
             if (result) {
+                // Start harvest animation
+                renderer.harvestAnimation.startAnimation(
+                    result.plantId,
+                    result.position,
+                    result.tier,
+                    result.finalPlant
+                );
+
                 updateSeedBank();
                 updatePlantCount();
                 hidePopover();
