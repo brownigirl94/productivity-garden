@@ -12,7 +12,7 @@ const STORAGE_KEYS = {
 const GAME_CONFIG = {
     MAX_SEEDS: 5,
     MAX_PLANTS: Infinity, // Unlimited plants
-    MIN_COMPLETE_TIME: 1 * 60 * 1000, // 20 minutes in ms
+    MIN_COMPLETE_TIME: 0.1 * 60 * 1000, // 20 minutes in ms
     GROWTH_STAGES: [
         { time: 0, label: 'Seed' },
         { time: 20 * 60 * 1000, label: 'Sprout' },
@@ -69,6 +69,50 @@ const GROWTH_STAGE_EMOJIS = [
     '🌲', // Stage 4: Mature Plant (4-24hrs)
     '🌺'  // Stage 5: Full Bloom (24+hrs)
 ];
+
+// Audio Manager
+class AudioManager {
+    constructor() {
+        this.sounds = new Map();
+        this.enabled = true;
+        this.loadSounds();
+    }
+
+    loadSounds() {
+        // Load harvest sound
+        const harvestSound = new Audio('assets/harvest_sound.wav');
+        harvestSound.volume = 0.5; // Set volume to 50%
+        this.sounds.set('harvest', harvestSound);
+    }
+
+    play(soundName) {
+        if (!this.enabled) return;
+
+        const sound = this.sounds.get(soundName);
+        if (sound) {
+            // Clone the audio to allow overlapping sounds
+            const soundClone = sound.cloneNode();
+            soundClone.volume = sound.volume;
+            soundClone.play().catch(err => {
+                console.warn(`Failed to play sound ${soundName}:`, err);
+            });
+        }
+    }
+
+    setEnabled(enabled) {
+        this.enabled = enabled;
+    }
+
+    setVolume(soundName, volume) {
+        const sound = this.sounds.get(soundName);
+        if (sound) {
+            sound.volume = Math.max(0, Math.min(1, volume));
+        }
+    }
+}
+
+// Create global audio manager instance
+const audioManager = new AudioManager();
 
 // Game State
 class GameState {
@@ -305,7 +349,7 @@ class HarvestAnimation {
         this.CANDIDATE_COUNT = 5; // Number of plants to cycle through
     }
 
-    startAnimation(plantId, position, tier, finalPlant) {
+    startAnimation(plantId, position, tier, finalPlant, onComplete = null) {
         // Get candidate plants from the same tier
         const candidates = PLANT_DATABASE[tier];
 
@@ -334,6 +378,8 @@ class HarvestAnimation {
             finalPlant: finalPlant,
             tier: tier,
             complete: false,
+            soundPlayed: false, // Track if completion sound has been played
+            onComplete: onComplete, // Callback for when animation completes
             // Easing function for slot machine effect
             getFrameDuration: (frameIndex) => {
                 const progress = frameIndex / frameCount;
@@ -364,6 +410,12 @@ class HarvestAnimation {
                 // Check if animation is complete
                 if (anim.currentFrame >= anim.frames.length) {
                     anim.complete = true;
+
+                    // Trigger completion callback (e.g., play sound)
+                    if (anim.onComplete && !anim.soundPlayed) {
+                        anim.soundPlayed = true;
+                        anim.onComplete();
+                    }
                 }
             }
         }
@@ -940,6 +992,7 @@ function showSettings() {
     // Bind settings events
     document.getElementById('sfx-toggle').addEventListener('change', (e) => {
         gameState.settings.sfx = e.target.checked;
+        audioManager.setEnabled(e.target.checked);
         gameState.save();
     });
     
@@ -995,12 +1048,15 @@ function init() {
     // Create game state
     gameState = new GameState();
     gameState.load();
-    
+
+    // Sync audio manager with settings
+    audioManager.setEnabled(gameState.settings.sfx);
+
     // Create renderer
     const canvas = document.getElementById('garden-canvas');
     renderer = new GardenRenderer(canvas, gameState);
     renderer.start();
-    
+
     // Update UI
     updateSeedBank();
     updatePlantCount();
@@ -1076,13 +1132,27 @@ function bindUIEvents() {
         if (gameState.selectedPlant) {
             const result = gameState.completePlant(gameState.selectedPlant.id);
             if (result) {
-                // Start harvest animation
-                renderer.harvestAnimation.startAnimation(
-                    result.plantId,
-                    result.position,
-                    result.tier,
-                    result.finalPlant
-                );
+                // Check if animations are enabled
+                if (gameState.settings.animations) {
+                    // Start harvest animation with sound callback
+                    renderer.harvestAnimation.startAnimation(
+                        result.plantId,
+                        result.position,
+                        result.tier,
+                        result.finalPlant,
+                        () => {
+                            // Play harvest sound when animation completes (if enabled)
+                            if (gameState.settings.sfx) {
+                                audioManager.play('harvest');
+                            }
+                        }
+                    );
+                } else {
+                    // No animation, just play sound immediately if enabled
+                    if (gameState.settings.sfx) {
+                        audioManager.play('harvest');
+                    }
+                }
 
                 updateSeedBank();
                 updatePlantCount();
