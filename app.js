@@ -11,7 +11,7 @@ const STORAGE_KEYS = {
 
 const GAME_CONFIG = {
     MAX_SEEDS: 5,
-    MAX_PLANTS: 5,
+    MAX_PLANTS: Infinity, // Unlimited plants
     MIN_COMPLETE_TIME: 1 * 60 * 1000, // 20 minutes in ms
     GROWTH_STAGES: [
         { time: 0, label: 'Seed' },
@@ -166,10 +166,7 @@ class GameState {
     }
 
     plantSeed(x, y, title, seed) {
-        if (this.plants.length >= GAME_CONFIG.MAX_PLANTS) {
-            showToast('Garden is full!', 'error');
-            return false;
-        }
+        // No plant limit check - unlimited plants allowed
 
         const plant = {
             id: `plant_${Date.now()}_${Math.random()}`,
@@ -349,11 +346,6 @@ class GardenRenderer {
             }
         } else {
             // Plant a new seed
-            if (this.gameState.plants.length >= GAME_CONFIG.MAX_PLANTS) {
-                showToast('Garden is full!', 'error');
-                return;
-            }
-
             if (this.gameState.seeds.length === 0) {
                 showToast('No seeds available!', 'error');
                 return;
@@ -578,7 +570,7 @@ function updateSeedBank() {
 
 function updatePlantCount() {
     const countEl = document.getElementById('plant-count');
-    countEl.textContent = `Plants: ${gameState.plants.length}/${GAME_CONFIG.MAX_PLANTS}`;
+    countEl.textContent = `Plants: ${gameState.plants.length}`;
 }
 
 function showToast(message, type = 'info', duration = 3000) {
