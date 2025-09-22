@@ -87,7 +87,12 @@ class GameState {
 
     load() {
         try {
-            this.seeds = JSON.parse(localStorage.getItem(STORAGE_KEYS.SEEDS)) || this.getDefaultSeeds();
+            // Check if this is a new player (no saved data)
+            const savedSeeds = localStorage.getItem(STORAGE_KEYS.SEEDS);
+            const isNewPlayer = !savedSeeds && !localStorage.getItem(STORAGE_KEYS.PLANTS) && !localStorage.getItem(STORAGE_KEYS.DEX);
+
+            // Only give default seeds to new players
+            this.seeds = savedSeeds ? JSON.parse(savedSeeds) : (isNewPlayer ? this.getDefaultSeeds() : []);
             this.plants = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLANTS)) || [];
             this.dex = JSON.parse(localStorage.getItem(STORAGE_KEYS.DEX)) || {};
             this.settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS)) || this.settings;
@@ -125,13 +130,9 @@ class GameState {
     consumeSeed() {
         if (this.seeds.length === 0) return null;
         const seed = this.seeds.shift();
-        
-        // Auto-refill if bank is empty
-        if (this.seeds.length === 0) {
-            this.seeds = this.getDefaultSeeds();
-            showToast('Seed bank refilled with Basic seeds!', 'success');
-        }
-        
+
+        // No auto-refill - seeds only come from harvesting
+
         this.save();
         return seed;
     }
@@ -219,6 +220,12 @@ class GameState {
         const rewardTier = this.rollSeedReward(plant.tier);
         if (rewardTier) {
             this.addSeed(rewardTier, true); // Pass true to highlight new seed
+        }
+
+        // Give bonus basic seed if seed bank is completely empty to prevent soft-lock
+        if (this.seeds.length === 0) {
+            this.addSeed(TIERS.BASIC, false);
+            showToast('Received bonus seed to keep growing!', 'info');
         }
 
         this.save();
