@@ -200,7 +200,7 @@ body {
 }
 
 .seed-slot.filled .seed-icon::after {
-    content: '🌰';
+    content: '🌵';
     font-size: 2rem;
 }
 

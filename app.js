@@ -12,14 +12,20 @@ const STORAGE_KEYS = {
 const GAME_CONFIG = {
     MAX_SEEDS: 5,
     MAX_PLANTS: Infinity, // Unlimited plants
-    MIN_COMPLETE_TIME: 20 * 60 * 1000, // 20 minutes in ms
+    // MIN_COMPLETE_TIME: 20 * 60 * 1000, // 2
+    MIN_COMPLETE_TIME: 2, // 20 minutes in ms
     GROWTH_STAGES: [
         { time: 0, label: 'Seed' },
-        { time: 20 * 60 * 1000, label: 'Sprout' },
-        { time: 60 * 60 * 1000, label: 'Seedling' },
-        { time: 2 * 60 * 60 * 1000, label: 'Young Plant' },
-        { time: 4 * 60 * 60 * 1000, label: 'Mature Plant' },
-        { time: 24 * 60 * 60 * 1000, label: 'Full Bloom' }
+        { time: 2 * 2 * 1000, label: 'Sprout' },
+        { time: 3 * 2 * 1000, label: 'Seedling' },
+        { time: 4 * 2 * 1000, label: 'Young Plant' },
+        { time: 5 * 2 * 60 * 1000, label: 'Mature Plant' },
+        { time: 6 * 2 * 60 * 1000, label: 'Full Bloom' }
+        // { time: 20 * 60 * 1000, label: 'Sprout' },
+        // { time: 60 * 60 * 1000, label: 'Seedling' },
+        // { time: 2 * 60 * 60 * 1000, label: 'Young Plant' },
+        // { time: 4 * 60 * 60 * 1000, label: 'Mature Plant' },
+        // { time: 24 * 60 * 60 * 1000, label: 'Full Bloom' }
     ]
 };
 
@@ -62,7 +68,7 @@ const PLANT_DATABASE = {
 
 // Growth stage emojis
 const GROWTH_STAGE_EMOJIS = [
-    '🌰', // Stage 0: Seed (0-20 minutes)
+    '🌵', // Stage 0: Seed (0-20 minutes)
     '🌱', // Stage 1: Sprout (20min-1hr)
     '🌿', // Stage 2: Seedling (1-2hrs)
     '🌾', // Stage 3: Young Plant (2-4hrs)
